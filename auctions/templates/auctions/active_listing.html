@@ -1,0 +1,130 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+
+    {% if message %}
+        <div class="message">
+            <div>{{ message }}</div>
+        </div>
+    {% endif %}
+
+    <div class="active_listing">
+        <div class="info">
+            <h2> {{ listing.title }} </h2>
+            <div class="property">
+                <small> {{ listing.description }} </small>
+            </div>
+            <div class="property">
+                &euro; {{ listing.highest_bid_value }}
+            </div>
+            <div class="property">
+                <small><i>
+                    <u>
+                        {% if listing.number_of_bids == 1 %}
+                            1 bid
+                        {% elif listing.number_of_bids > 1 %}
+                            {{ listing.number_of_bids }} bids
+                        {% endif %}
+                    </u>
+                    {% for bid in listing.sorted_bids %}
+                        <div>
+                            &euro; {{ bid.bid }} - {{ bid.user }}
+                        </div>
+                    {% endfor %}
+                    <div>
+                        <u>
+                            Starting bid
+                        </u>
+                        <div>
+                            &euro; {{ listing.starting_bid }}
+                        </div>
+                    </div>
+                </i></small>
+            </div>
+            <div class="property">
+                <form action="{% url 'create_bid' listing.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <input class="form-control" required type="number" name="bid" placeholder="0" min="0">
+                    </div>
+                    <input class="btn btn-primary" type="submit" value="Create bid">
+                </form>
+            </div>
+            {% if listing.category %}
+                <div class="property">
+                    <form action="{% url 'category' listing.category.id %}">
+                        <input class="btn btn-primary" type="submit" value="{{ listing.category.name }}">
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+        <div class="listing_image">
+            {% if listing.image %}
+                <img width="100%" src="{{ listing.image|escape }}" alt="Image not found">
+            {% endif %}
+        </div>
+        <div class="info">
+            <div class="property">
+                <small><i>
+                    <u>
+                        {% if listing.number_of_comments == 1 %}
+                            1 comment
+                        {% else %}
+                            {{ listing.number_of_comments }} comments
+                        {% endif %}
+                    </u>
+                    {% for comment in listing.sorted_comments %}
+                        <div>
+                            {{ comment.comment }} - {{ comment.user }}
+                        </div>
+                    {% endfor %}
+                </i></small>
+            </div>
+            <div class="property">
+                <form action="{% url 'create_comment' listing.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <input class="form-control" required type="text" name="comment" placeholder="...">
+                    </div>
+                    <input class="btn btn-primary" type="submit" value="Create comment">
+                </form>
+            </div>
+            {% if listing in user.watchlist_listings %}
+                <div class="property">
+                    <form action="{% url 'remove_watching' listing.id %}" method="post">
+                        {% csrf_token %}
+                        <input class="btn btn-primary" type="submit" value="Remove from watchlist">
+                    </form>
+                </div>
+            {% else %}
+                <div class="property">
+                    <form action="{% url 'create_watching' listing.id %}" method="post">
+                        {% csrf_token %}
+                        <input class="btn btn-primary" type="submit" value="Add to watchlist">
+                    </form>
+                </div>
+            {% endif %}
+            {% if listing.closed %}
+                {% if user.id is listing.highest_bid_object.user.id %}
+                    <div class="property">
+                        Auction closed,<br> you won the auction!
+                    </div>
+                {% else %}
+                    <div class="property">
+                        Auction closed
+                    </div>
+                {% endif %}
+            {% else %}
+                {% if user.id is listing.user.id %}
+                    <div class="property">
+                        <form action="{% url 'close_listing' listing.id %}" method="post">
+                            {% csrf_token %}
+                            <input class="btn btn-primary" type="submit" value="Close listing"
+                                   onclick="return confirm('Are you sure you want to close the auction?')">
+                        </form>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

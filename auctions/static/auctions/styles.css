@@ -1,0 +1,59 @@
+body {
+    padding: 10px;
+}
+
+.message {
+    margin: 20px;
+    padding-left: 10px;
+}
+
+.active_listing {
+    display: flex;
+    width: 80%;
+    margin: 20px;
+    padding: 10px;
+    border: 2px solid black;
+}
+
+.active_listing .info {
+    width: 20%;
+    padding: 10px;
+    border: 1px solid gray;
+}
+
+.active_listing .info .property {
+    padding: 5px;
+    border-top: 1px solid lightgray;
+}
+
+.active_listing .info .fadeout_property {
+    padding: 5px;
+    border-top: 1px solid lightgray;
+    mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
+}
+
+.active_listing .index_image {
+    width: 80%;
+    margin-left: 10px;
+    border: 1px solid gray;
+    padding: 10px;
+}
+
+.active_listing .listing_image {
+    width: 60%;
+    margin-left: 10px;
+    margin-right: 10px;
+    border: 1px solid gray;
+    padding: 10px;
+}
+
+.form-group {
+    margin-bottom: 5px;
+}
+
+.nav {
+    width: 80%;
+    margin: 20px;
+    border-top: 2px solid lightgray;
+    border-bottom: 2px solid lightgray;
+}
