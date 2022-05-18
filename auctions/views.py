@@ -11,7 +11,8 @@ from .models import *
 def index(request):
     return render(request, "auctions/index.html", {
             "listings": Listing.objects.all(),
-            "categories": Category.objects.all()
+            "categories": Category.objects.all(),
+            "only_active": True
         })
 
 
@@ -93,6 +94,10 @@ def create_listing(request):
             listing = Listing(title=title, description=description, starting_bid=starting_bid, user=request.user, **kwargs)
             listing.save()
 
+            # Add listing to watchlist
+            new_watching = Watching(user=request.user, listing=listing)
+            new_watching.save()
+
         except Error as e:
             return render(request, "auctions/create_listing.html", {
                 "message": e.message,
@@ -147,6 +152,14 @@ def create_bid(request, listing_id):
         bid = float(request.POST["bid"])
         listing = Listing.objects.get(id=listing_id)
 
+        # Check if auction is still open
+        if listing.closed:
+            return render(request, "auctions/active_listing.html", {
+                "listing": listing,
+                "categories": Category.objects.all(),
+                "message": f"You cannot bid anymore, auction closed!"
+            })
+
         # Check if bid and listing are not of same user
         if listing.user.pk is request.user.pk:
             return render(request, "auctions/active_listing.html", {
@@ -155,20 +168,28 @@ def create_bid(request, listing_id):
                 "message": f"You cannot bid on your own listing!"
             })
 
-        # Check if bid is higher then previous bids or starting bids
-        if listing.highest_bid_value >= bid:
-            return render(request, "auctions/active_listing.html", {
-                "listing": listing,
-                "categories": Category.objects.all(),
-                "message": f"Bid must exceed current highest bid: €{listing.highest_bid_value}!"
-            })
-
         # Check if current highest bid is not of the same user
         if listing.highest_bid_object and listing.highest_bid_object.user.pk is request.user.pk:
             return render(request, "auctions/active_listing.html", {
                 "listing": listing,
                 "categories": Category.objects.all(),
-                "message": f"You already have the current highest bid: €{listing.highest_bid_value}!"
+                "message": f"You already have the current highest bid: €{listing.current_price}!"
+            })
+
+        # Check if bid is higher than previous bid
+        if listing.highest_bid_value >= bid:
+            return render(request, "auctions/active_listing.html", {
+                "listing": listing,
+                "categories": Category.objects.all(),
+                "message": f"Bid must exceed current highest bid: €{listing.current_price}!"
+            })
+
+        # Check if bid is at least equal to starting bid
+        if listing.starting_bid > bid:
+            return render(request, "auctions/active_listing.html", {
+                "listing": listing,
+                "categories": Category.objects.all(),
+                "message": f"Bid must at least be equal to starting bid: €{listing.starting_bid}!"
             })
 
         # Attempt to create new bid
@@ -176,6 +197,11 @@ def create_bid(request, listing_id):
             # Create new bid and save
             new_bid = Bid(bid=bid, user=request.user, listing=listing)
             new_bid.save()
+
+            # Add listing to watchlist if not yet on it
+            if listing not in request.user.watchlist_listings:
+                new_watching = Watching(user=request.user, listing=listing)
+                new_watching.save()
 
         except Error as e:
             return render(request, "auctions/active_listing.html", {
@@ -195,11 +221,24 @@ def create_comment(request, listing_id):
         comment = request.POST["comment"]
         listing = Listing.objects.get(id=listing_id)
 
+        # Check if auction is still open
+        if listing.closed:
+            return render(request, "auctions/active_listing.html", {
+                "listing": listing,
+                "categories": Category.objects.all(),
+                "message": f"You cannot comment anymore, auction closed!"
+            })
+
         # Attempt to create new comment
         try:
             # Create new comment and save
             new_comment = Comment(comment=comment, user=request.user, listing=listing)
             new_comment.save()
+
+            # Add listing to watchlist if not yet on it
+            if listing not in request.user.watchlist_listings:
+                new_watching = Watching(user=request.user, listing=listing)
+                new_watching.save()
 
         except Error as e:
             return render(request, "auctions/active_listing.html", {
@@ -262,12 +301,14 @@ def remove_watching(request, listing_id):
 def category(request, category_id):
     return render(request, "auctions/index.html", {
             "listings": Category.objects.get(id=category_id).listings.all(),
-            "categories": Category.objects.all()
+            "categories": Category.objects.all(),
+            "only_active": False
     })
 
 
 def watchlist(request):
     return render(request, "auctions/index.html", {
             "listings": request.user.watchlist_listings,
-            "categories": Category.objects.all()
+            "categories": Category.objects.all(),
+            "only_active": False
     })
